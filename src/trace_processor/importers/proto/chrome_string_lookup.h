@@ -17,12 +17,11 @@
 #ifndef SRC_TRACE_PROCESSOR_IMPORTERS_PROTO_CHROME_STRING_LOOKUP_H_
 #define SRC_TRACE_PROCESSOR_IMPORTERS_PROTO_CHROME_STRING_LOOKUP_H_
 
-#include <map>
+#include <array>
 
-#include <optional>
+#include "protos/perfetto/trace/track_event/chrome_thread_descriptor.pbzero.h"
+#include "protos/third_party/chromium/chrome_enums.pbzero.h"
 #include "src/trace_processor/storage/trace_storage.h"
-
-#include "perfetto/ext/base/string_view.h"
 
 namespace perfetto {
 namespace trace_processor {
@@ -36,10 +35,13 @@ class ChromeStringLookup {
   StringId GetThreadName(int32_t thread_type) const;
 
  private:
-  std::map<int32_t /* ChromeProcessDescriptor::ProcessType */, StringId>
-      chrome_process_name_ids_;
-  std::map<int32_t /* ChromeThreadDescriptor::ThreadType */, StringId>
-      chrome_thread_name_ids_;
+  std::array<StringId,
+             ::perfetto::protos::chrome_enums::pbzero::ProcessType_MAX + 1>
+      chrome_process_name_ids_{};
+  std::array<StringId,
+             ::perfetto::protos::pbzero::ChromeThreadDescriptor_ThreadType_MAX +
+                 1>
+      chrome_thread_name_ids_{};
 };
 
 }  // namespace trace_processor

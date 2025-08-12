@@ -35,6 +35,11 @@ constexpr auto kThreadTypeMin =
 constexpr auto kThreadTypeMax =
     ::perfetto::protos::pbzero::ChromeThreadDescriptor_ThreadType_MAX;
 
+static_assert(kThreadTypeMin >= 0,
+              "Negative enum values can't converted to size_t for indexing");
+static_assert(chrome_enums::ProcessType_MIN >= 0,
+              "Negative enum values can't converted to size_t for indexing");
+
 // Add Chrome process and thread names to these two functions to get
 // friendly-formatted names in field traces. If an entry is added to
 // chrome_enums.proto without adding it here, the enum value name from the proto
@@ -46,7 +51,7 @@ constexpr auto kThreadTypeMax =
 
 // Returns a name, which may be null, for `process_type`.
 const char* GetProcessNameString(
-    int32_t process_type,
+    size_t process_type,
     bool ignore_predefined_thread_types_for_testing) {
   PERFETTO_DCHECK(process_type >= chrome_enums::ProcessType_MIN);
   PERFETTO_DCHECK(process_type <= chrome_enums::ProcessType_MAX);
@@ -146,7 +151,7 @@ const char* GetProcessNameString(
 
 // Returns a name, which may be null, for `thread_type`.
 const char* GetThreadNameString(
-    int32_t thread_type,
+    size_t thread_type,
     bool ignore_predefined_thread_types_for_testing) {
   PERFETTO_DCHECK(thread_type >= kThreadTypeMin);
   PERFETTO_DCHECK(thread_type <= kThreadTypeMax);
@@ -256,7 +261,7 @@ const char* GetThreadNameString(
 ChromeStringLookup::ChromeStringLookup(
     TraceStorage* storage,
     bool ignore_predefined_names_for_testing) {
-  for (int32_t i = chrome_enums::ProcessType_MIN;
+  for (size_t i = chrome_enums::ProcessType_MIN;
        i <= chrome_enums::ProcessType_MAX; ++i) {
     const char* name =
         GetProcessNameString(i, ignore_predefined_names_for_testing);
@@ -264,7 +269,7 @@ ChromeStringLookup::ChromeStringLookup(
         name ? storage->InternString(name) : kNullStringId;
   }
 
-  for (int32_t i = kThreadTypeMin; i <= kThreadTypeMax; ++i) {
+  for (size_t i = kThreadTypeMin; i <= kThreadTypeMax; ++i) {
     const char* name =
         GetThreadNameString(i, ignore_predefined_names_for_testing);
     chrome_thread_name_ids_[i] =
@@ -273,20 +278,23 @@ ChromeStringLookup::ChromeStringLookup(
 }
 
 StringId ChromeStringLookup::GetProcessName(int32_t process_type) const {
-  auto process_name_it = chrome_process_name_ids_.find(process_type);
-  if (process_name_it != chrome_process_name_ids_.end())
-    return process_name_it->second;
-
+  if (process_type >= chrome_enums::ProcessType_MIN &&
+      process_type <= chrome_enums::ProcessType_MAX) {
+    const size_t idx = static_cast<size_t>(process_type);
+    PERFETTO_DCHECK(idx < chrome_process_name_ids_.size());
+    return chrome_process_name_ids_[idx];
+  }
   PERFETTO_DLOG("GetProcessName error: Unknown Chrome process type %u",
                 process_type);
   return kNullStringId;
 }
 
 StringId ChromeStringLookup::GetThreadName(int32_t thread_type) const {
-  auto thread_name_it = chrome_thread_name_ids_.find(thread_type);
-  if (thread_name_it != chrome_thread_name_ids_.end())
-    return thread_name_it->second;
-
+  if (thread_type >= kThreadTypeMin && thread_type <= kThreadTypeMax) {
+    const size_t idx = static_cast<size_t>(thread_type);
+    PERFETTO_DCHECK(idx < chrome_thread_name_ids_.size());
+    return chrome_thread_name_ids_[idx];
+  }
   PERFETTO_DLOG("GetThreadName error: Unknown Chrome thread type %u",
                 thread_type);
   return kNullStringId;
