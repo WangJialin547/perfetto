@@ -28,6 +28,16 @@ namespace trace_processor {
 
 class ChromeStringLookup {
  public:
+  // Min and max known values for process and thread types.
+  constexpr static int32_t kProcessTypeMin =
+      ::perfetto::protos::chrome_enums::pbzero::ProcessType_MIN;
+  constexpr static int32_t kProcessTypeMax =
+      ::perfetto::protos::chrome_enums::pbzero::ProcessType_MAX;
+  constexpr static int32_t kThreadTypeMin =
+      ::perfetto::protos::pbzero::ChromeThreadDescriptor_ThreadType_MIN;
+  constexpr static int32_t kThreadTypeMax =
+      ::perfetto::protos::pbzero::ChromeThreadDescriptor_ThreadType_MAX;
+
   explicit ChromeStringLookup(TraceStorage* storage,
                               bool ignore_predefined_names_for_testing = false);
 
@@ -35,15 +45,10 @@ class ChromeStringLookup {
   StringId GetThreadName(int32_t thread_type) const;
 
  private:
-  std::array<StringId,
-             ::perfetto::protos::chrome_enums::pbzero::ProcessType_MAX -
-                 ::perfetto::protos::chrome_enums::pbzero::ProcessType_MIN + 1>
-      chrome_process_name_ids_{};
-  std::array<
-      StringId,
-      ::perfetto::protos::pbzero::ChromeThreadDescriptor_ThreadType_MAX -
-          ::perfetto::protos::pbzero::ChromeThreadDescriptor_ThreadType_MIN + 1>
-      chrome_thread_name_ids_{};
+  std::array<StringId, kProcessTypeMax - kProcessTypeMin + 1>
+      chrome_process_name_ids_;
+  std::array<StringId, kThreadTypeMax - kThreadTypeMin + 1>
+      chrome_thread_name_ids_;
 };
 
 }  // namespace trace_processor
