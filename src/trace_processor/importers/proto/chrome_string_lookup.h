@@ -36,11 +36,13 @@ class ChromeStringLookup {
 
  private:
   std::array<StringId,
-             ::perfetto::protos::chrome_enums::pbzero::ProcessType_MAX + 1>
+             ::perfetto::protos::chrome_enums::pbzero::ProcessType_MAX -
+                 ::perfetto::protos::chrome_enums::pbzero::ProcessType_MIN + 1>
       chrome_process_name_ids_{};
-  std::array<StringId,
-             ::perfetto::protos::pbzero::ChromeThreadDescriptor_ThreadType_MAX +
-                 1>
+  std::array<
+      StringId,
+      ::perfetto::protos::pbzero::ChromeThreadDescriptor_ThreadType_MAX -
+          ::perfetto::protos::pbzero::ChromeThreadDescriptor_ThreadType_MIN + 1>
       chrome_thread_name_ids_{};
 };
 

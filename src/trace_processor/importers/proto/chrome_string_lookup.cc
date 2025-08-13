@@ -35,11 +35,6 @@ constexpr auto kThreadTypeMin =
 constexpr auto kThreadTypeMax =
     ::perfetto::protos::pbzero::ChromeThreadDescriptor_ThreadType_MAX;
 
-static_assert(kThreadTypeMin >= 0,
-              "Negative enum values can't converted to size_t for indexing");
-static_assert(chrome_enums::ProcessType_MIN >= 0,
-              "Negative enum values can't converted to size_t for indexing");
-
 // Add Chrome process and thread names to these two functions to get
 // friendly-formatted names in field traces. If an entry is added to
 // chrome_enums.proto without adding it here, the enum value name from the proto
@@ -51,7 +46,7 @@ static_assert(chrome_enums::ProcessType_MIN >= 0,
 
 // Returns a name, which may be null, for `process_type`.
 const char* GetProcessNameString(
-    size_t process_type,
+    int32_t process_type,
     bool ignore_predefined_thread_types_for_testing) {
   PERFETTO_DCHECK(process_type >= chrome_enums::ProcessType_MIN);
   PERFETTO_DCHECK(process_type <= chrome_enums::ProcessType_MAX);
@@ -151,7 +146,7 @@ const char* GetProcessNameString(
 
 // Returns a name, which may be null, for `thread_type`.
 const char* GetThreadNameString(
-    size_t thread_type,
+    int32_t thread_type,
     bool ignore_predefined_thread_types_for_testing) {
   PERFETTO_DCHECK(thread_type >= kThreadTypeMin);
   PERFETTO_DCHECK(thread_type <= kThreadTypeMax);
@@ -261,28 +256,31 @@ const char* GetThreadNameString(
 ChromeStringLookup::ChromeStringLookup(
     TraceStorage* storage,
     bool ignore_predefined_names_for_testing) {
-  for (size_t i = chrome_enums::ProcessType_MIN;
-       i <= chrome_enums::ProcessType_MAX; ++i) {
+  for (int32_t type = chrome_enums::ProcessType_MIN;
+       type <= chrome_enums::ProcessType_MAX; ++type) {
     const char* name =
-        GetProcessNameString(i, ignore_predefined_names_for_testing);
-    chrome_process_name_ids_[i] =
+        GetProcessNameString(type, ignore_predefined_names_for_testing);
+    const auto idx = static_cast<size_t>(type - chrome_enums::ProcessType_MIN);
+    chrome_process_name_ids_[idx] =
         name ? storage->InternString(name) : kNullStringId;
   }
 
-  for (size_t i = kThreadTypeMin; i <= kThreadTypeMax; ++i) {
+  for (int32_t type = kThreadTypeMin; type <= kThreadTypeMax; ++type) {
     const char* name =
-        GetThreadNameString(i, ignore_predefined_names_for_testing);
-    chrome_thread_name_ids_[i] =
+        GetThreadNameString(type, ignore_predefined_names_for_testing);
+    const auto idx = static_cast<size_t>(type - kThreadTypeMin);
+    chrome_thread_name_ids_[idx] =
         name ? storage->InternString(name) : kNullStringId;
   }
 }
 
 StringId ChromeStringLookup::GetProcessName(int32_t process_type) const {
-  if (process_type >= chrome_enums::ProcessType_MIN &&
-      process_type <= chrome_enums::ProcessType_MAX) {
-    const size_t idx = static_cast<size_t>(process_type);
-    PERFETTO_DCHECK(idx < chrome_process_name_ids_.size());
-    return chrome_process_name_ids_[idx];
+  if (process_type >= chrome_enums::ProcessType_MIN) {
+    const auto idx =
+        static_cast<size_t>(process_type - chrome_enums::ProcessType_MIN);
+    if (idx < chrome_process_name_ids_.size()) {
+      return chrome_process_name_ids_[idx];
+    }
   }
   PERFETTO_DLOG("GetProcessName error: Unknown Chrome process type %u",
                 process_type);
@@ -290,10 +288,11 @@ StringId ChromeStringLookup::GetProcessName(int32_t process_type) const {
 }
 
 StringId ChromeStringLookup::GetThreadName(int32_t thread_type) const {
-  if (thread_type >= kThreadTypeMin && thread_type <= kThreadTypeMax) {
-    const size_t idx = static_cast<size_t>(thread_type);
-    PERFETTO_DCHECK(idx < chrome_thread_name_ids_.size());
-    return chrome_thread_name_ids_[idx];
+  if (thread_type >= kThreadTypeMin) {
+    const auto idx = static_cast<size_t>(thread_type - kThreadTypeMin);
+    if (idx < chrome_thread_name_ids_.size()) {
+      return chrome_thread_name_ids_[idx];
+    }
   }
   PERFETTO_DLOG("GetThreadName error: Unknown Chrome thread type %u",
                 thread_type);
